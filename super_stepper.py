@@ -91,18 +91,12 @@ def step(phase: str, task: str, increment: float):
                 if not success:
                     _failed_tasks.append((phase, task))
 
-                # Clear current task
-                _current_task = None
-
                 return success
 
             except Exception as e:
                 # Update task status as failed
                 _tasks[phase][task_entry] = (increment, task, func, True, False)
                 _failed_tasks.append((phase, task))
-
-                # Clear current task
-                _current_task = None
 
                 return False
 
@@ -238,13 +232,9 @@ def start_workflow():
 
 def reset():
     """Reset all tasks and failed task tracking."""
-    global _tasks, _failed_tasks, _live_display, _current_task, _display_started
-
-    # Stop live display if running
-    _stop_live_display()
+    global _tasks, _failed_tasks, _phase_order
 
     # Clear all data
     _tasks.clear()
     _failed_tasks.clear()
-    _current_task = None
-    _display_started = False
+    _phase_order.clear()
