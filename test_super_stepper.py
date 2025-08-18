@@ -52,7 +52,7 @@ def generate_reports():
 def archive_files():
     """Archive old log files."""
     time.sleep(0.6)
-    return True
+    return False  # Simulate failure
 
 
 @step(phase="cleanup", task="Send notifications", increment=2.0)
@@ -72,21 +72,29 @@ def main():
     # Start the workflow display (this will show all registered tasks)
     start_workflow()
 
-    # Execute tasks in phase order: initialization -> data_processing -> cleanup
+    # Execute tasks OUT OF ORDER to test phase grouping and sorting
 
-    # Phase 1: Initialization (in increment order)
-    setup_logging()      # increment 1.0
-    load_config()        # increment 2.0
-    connect_db()         # increment 3.0
+    # Start with a cleanup task
+    archive_files()      # cleanup phase, increment 1.0
 
-    # Phase 2: Data Processing (in increment order)
-    fetch_users()        # increment 1.0
-    process_transactions() # increment 2.0
-    generate_reports()   # increment 3.0
+    # Then some data processing
+    process_transactions() # data_processing phase, increment 2.0
 
-    # Phase 3: Cleanup (in increment order)
-    archive_files()      # increment 1.0
-    send_notifications() # increment 2.0
+    # Back to initialization
+    setup_logging()      # initialization phase, increment 1.0
+
+    # More cleanup
+    send_notifications() # cleanup phase, increment 2.0
+
+    # More initialization
+    connect_db()         # initialization phase, increment 3.0
+
+    # More data processing
+    fetch_users()        # data_processing phase, increment 1.0
+    generate_reports()   # data_processing phase, increment 3.0
+
+    # Final initialization
+    load_config()        # initialization phase, increment 2.0
 
     # Print final summary
     print_summary()

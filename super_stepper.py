@@ -16,6 +16,7 @@ from rich.live import Live
 # Global storage for tasks and results
 _tasks: Dict[str, List[Tuple[float, str, Callable, bool, bool]]] = {}  # phase -> [(increment, task, func, completed, success)]
 _failed_tasks: List[Tuple[str, str]] = []  # [(phase, task)]
+_phase_order: List[str] = []  # Track the order phases are encountered
 _console = Console()
 _live_display = None
 _current_task = None
@@ -40,6 +41,9 @@ def step(phase: str, task: str, increment: float):
         # Register the task when decorator is applied
         if phase not in _tasks:
             _tasks[phase] = []
+            # Track phase order
+            if phase not in _phase_order:
+                _phase_order.append(phase)
 
         # Check if task already exists to avoid duplicates
         task_exists = False
@@ -58,6 +62,9 @@ def step(phase: str, task: str, increment: float):
             # Ensure phase exists
             if phase not in _tasks:
                 _tasks[phase] = []
+                # Also ensure phase order is maintained
+                if phase not in _phase_order:
+                    _phase_order.append(phase)
 
             # Find this task in the registry
             task_entry = None
@@ -91,12 +98,24 @@ def step(phase: str, task: str, increment: float):
                 if not success:
                     _failed_tasks.append((phase, task))
 
+                # Clear current task since it's completed
+                _current_task = None
+
+                # Give the background thread time to update the display
+                time.sleep(0.2)
+
                 return success
 
             except Exception as e:
                 # Update task status as failed
                 _tasks[phase][task_entry] = (increment, task, func, True, False)
                 _failed_tasks.append((phase, task))
+
+                # Clear current task since it's completed
+                _current_task = None
+
+                # Give the background thread time to update the display
+                time.sleep(0.2)
 
                 return False
 
@@ -128,10 +147,8 @@ def _generate_display():
     """Generate the current display showing all tasks with their status."""
     display = Text()
 
-    # Sort phases alphabetically
-    sorted_phases = sorted(_tasks.keys())
-
-    for phase in sorted_phases:
+    # Use phase order as encountered (same as print_summary)
+    for phase in _phase_order:
         if not _tasks[phase]:
             continue
 
@@ -145,18 +162,20 @@ def _generate_display():
         sorted_tasks = sorted(_tasks[phase], key=lambda x: x[0])
 
         for increment, task_name, func, completed, success in sorted_tasks:
-            if _current_task and _current_task[0] == phase and _current_task[1] == task_name and not completed:
-                # Show spinner for current task
-                spinner_char = _spinner_chars[_spinner_index]
-                display.append(f"  {spinner_char} ", style="yellow")
-                display.append(f"{task_name}", style="yellow")
-            elif completed:
+            if completed:
+                # Task is completed - show checkmark or X
                 if success:
                     display.append("  ✓ ", style="green")
                 else:
                     display.append("  ✗ ", style="red")
                 display.append(f"{task_name}", style="white")
+            elif _current_task and _current_task[0] == phase and _current_task[1] == task_name:
+                # Show spinner for current task
+                spinner_char = _spinner_chars[_spinner_index]
+                display.append(f"  {spinner_char} ", style="yellow")
+                display.append(f"{task_name}", style="yellow")
             else:
+                # Task not started yet
                 display.append("  - ", style="dim white")
                 display.append(f"{task_name}", style="dim white")
             display.append("\n")
@@ -174,53 +193,61 @@ def _stop_live_display():
         _live_display = None
 
 
-
-
-
-
-
-
 def print_summary():
-    """Print a summary of all phases and tasks, including any failures."""
-    _console.print()
+    """Print a summary with completion statistics and failed tasks."""
+    # Stop the live display first
+    _stop_live_display()
 
-    # Print all phases and tasks in execution order
+    # Calculate statistics
+    total_tasks = 0
+    completed_tasks = 0
+    failed_tasks = 0
+
     for phase in _phase_order:
         if not _tasks[phase]:
             continue
-
-        # Print phase header
-        phase_text = Text()
-        phase_text.append(f"{phase.upper()}", style="bold cyan")
-        _console.print(phase_text)
-
-        # Sort tasks by increment
-        sorted_tasks = sorted(_tasks[phase], key=lambda x: x[0])
-
-        for increment, task_name, func, completed, success in sorted_tasks:
-            result = Text()
+        for increment, task_name, func, completed, success in _tasks[phase]:
+            total_tasks += 1
             if completed:
-                if success:
-                    result.append("  ✓ ", style="green")
-                else:
-                    result.append("  ✗ ", style="red")
-            else:
-                result.append("  - ", style="dim white")
-            result.append(f"{task_name}", style="white")
-            _console.print(result)
+                completed_tasks += 1
+                if not success:
+                    failed_tasks += 1
 
-        _console.print()
+    # Print summary header in same style as phase headers
+    summary_header = Text()
+    # summary_header.append("SUMMARY", style="bold cyan")
+    # _console.print(summary_header)
 
-    # Print failed tasks summary if any
-    if _failed_tasks:
-        _console.print(Text("FAILED TASKS", style="bold red"))
-        for phase, task in _failed_tasks:
-            failed_text = Text()
-            failed_text.append("✗ ", style="red")
-            failed_text.append(f"{phase}: ", style="cyan")
-            failed_text.append(f"{task}", style="white")
-            _console.print(failed_text)
+    # Print single status line with consistent indentation
+    if total_tasks > 0:
+        if failed_tasks > 0:
+            # Some tasks failed
+            status_text = Text()
+            # status_text.append("", style="white")  # Match task indentation
+            status_text.append(f"{failed_tasks} of {total_tasks} tasks failed  ", style="white")
+            # status_text.append("✗", style="red")
+            _console.print(status_text)
 
+            # List failed tasks with consistent indentation
+            for i, (phase, task) in enumerate(_failed_tasks, 1):
+                failed_text = Text()
+                failed_text.append("  ✗ ", style="red")
+                failed_text.append(f"{phase}: ", style="cyan")
+                failed_text.append(f"{task}", style="white")
+                _console.print(failed_text)
+        else:
+            # All tasks completed successfully
+            status_text = Text()
+            # status_text.append("  ", style="white")  # Match task indentation
+            status_text.append(f"{total_tasks} of {total_tasks} tasks completed  ", style="white")
+            status_text.append("✓", style="green")
+            _console.print(status_text)
+    else:
+        status_text = Text()
+        status_text.append("  No tasks found", style="dim white")
+        _console.print(status_text)
+
+    _console.print()
 
 def start_workflow():
     """Start the workflow by displaying all registered tasks."""
