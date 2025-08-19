@@ -1,8 +1,34 @@
 """
-super_stepper - A Python decorator module for printing stepped actions with phases and tasks.
+super_stepper - A Python decorator module for creating beautiful, organized workflow displays.
 
 This module provides a decorator that groups tasks by phase and sorts them by increment,
 displaying progress with spinning wheels that turn into checkmarks or X marks based on success/failure.
+
+Features:
+- Phase-based task organization in execution order
+- Automatic task sorting by increment within phases
+- Enhanced error handling with custom messages and exception capture
+- Flexible return formats (boolean or tuple)
+- Live progress display with animated spinners
+- Comprehensive failure reporting with detailed error messages
+- Out-of-order execution support with logical display organization
+
+Example:
+    from super_stepper import step, print_summary, reset, start_workflow
+
+    @step(phase="setup", task="Initialize", increment=1.0)
+    def init():
+        return True
+
+    @step(phase="setup", task="Configure", increment=2.0)
+    def configure():
+        return False, "Config file missing"
+
+    reset()
+    start_workflow()
+    init()
+    configure()
+    print_summary()
 """
 
 import time
@@ -14,8 +40,8 @@ from rich.text import Text
 from rich.live import Live
 
 # Global storage for tasks and results
-_tasks: Dict[str, List[Tuple[float, str, Callable, bool, bool]]] = {}  # phase -> [(increment, task, func, completed, success)]
-_failed_tasks: List[Tuple[str, str]] = []  # [(phase, task)]
+_tasks: Dict[str, List[Tuple[float, str, Callable, bool, bool, str]]] = {}  # phase -> [(increment, task, func, completed, success, error_message)]
+_failed_tasks: List[Tuple[str, str, str]] = []  # [(phase, task, error_message)]
 _phase_order: List[str] = []  # Track the order phases are encountered
 _console = Console()
 _live_display = None
@@ -47,13 +73,13 @@ def step(phase: str, task: str, increment: float):
 
         # Check if task already exists to avoid duplicates
         task_exists = False
-        for inc, tsk, f, completed, success in _tasks[phase]:
+        for inc, tsk, f, completed, success, error_msg in _tasks[phase]:
             if inc == increment and tsk == task and f == func:
                 task_exists = True
                 break
 
         if not task_exists:
-            _tasks[phase].append((increment, task, func, False, False))
+            _tasks[phase].append((increment, task, func, False, False, ""))
 
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -68,14 +94,14 @@ def step(phase: str, task: str, increment: float):
 
             # Find this task in the registry
             task_entry = None
-            for i, (inc, tsk, f, completed, success) in enumerate(_tasks[phase]):
+            for i, (inc, tsk, f, completed, success, error_msg) in enumerate(_tasks[phase]):
                 if inc == increment and tsk == task and f == func:
                     task_entry = i
                     break
 
             if task_entry is None:
                 # This shouldn't happen, but add as fallback
-                _tasks[phase].append((increment, task, func, False, False))
+                _tasks[phase].append((increment, task, func, False, False, ""))
                 task_entry = len(_tasks[phase]) - 1
 
             # Start live display if not already started
@@ -89,14 +115,24 @@ def step(phase: str, task: str, increment: float):
             try:
                 # Execute the function
                 result = func(*args, **kwargs)
-                success = bool(result)
+
+                # Handle different return formats
+                if isinstance(result, tuple) and len(result) == 2:
+                    # Tuple return: (success, error_message)
+                    success, error_message = result
+                    success = bool(success)
+                    error_message = str(error_message) if error_message else ""
+                else:
+                    # Single return: just success boolean
+                    success = bool(result)
+                    error_message = ""
 
                 # Update task status
-                _tasks[phase][task_entry] = (increment, task, func, True, success)
+                _tasks[phase][task_entry] = (increment, task, func, True, success, error_message)
 
                 # Track failed tasks
                 if not success:
-                    _failed_tasks.append((phase, task))
+                    _failed_tasks.append((phase, task, error_message))
 
                 # Clear current task since it's completed
                 _current_task = None
@@ -107,9 +143,12 @@ def step(phase: str, task: str, increment: float):
                 return success
 
             except Exception as e:
+                # Capture exception message as error
+                error_message = str(e)
+
                 # Update task status as failed
-                _tasks[phase][task_entry] = (increment, task, func, True, False)
-                _failed_tasks.append((phase, task))
+                _tasks[phase][task_entry] = (increment, task, func, True, False, error_message)
+                _failed_tasks.append((phase, task, error_message))
 
                 # Clear current task since it's completed
                 _current_task = None
@@ -161,7 +200,7 @@ def _generate_display():
         # Sort tasks by increment
         sorted_tasks = sorted(_tasks[phase], key=lambda x: x[0])
 
-        for increment, task_name, func, completed, success in sorted_tasks:
+        for increment, task_name, func, completed, success, error_msg in sorted_tasks:
             if completed:
                 # Task is completed - show checkmark or X
                 if success:
@@ -206,7 +245,7 @@ def print_summary():
     for phase in _phase_order:
         if not _tasks[phase]:
             continue
-        for increment, task_name, func, completed, success in _tasks[phase]:
+        for increment, task_name, func, completed, success, error_msg in _tasks[phase]:
             total_tasks += 1
             if completed:
                 completed_tasks += 1
@@ -229,11 +268,17 @@ def print_summary():
             _console.print(status_text)
 
             # List failed tasks with consistent indentation
-            for i, (phase, task) in enumerate(_failed_tasks, 1):
+            for i, (phase, task, error_msg) in enumerate(_failed_tasks, 1):
                 failed_text = Text()
-                failed_text.append("  ✗ ", style="red")
+                failed_text.append(f"  {i}. ", style="white")
                 failed_text.append(f"{phase}: ", style="cyan")
                 failed_text.append(f"{task}", style="white")
+
+                # Add error message if available
+                if error_msg:
+                    failed_text.append(f" - {error_msg}", style="dim white")
+
+                failed_text.append("  ✗", style="red")
                 _console.print(failed_text)
         else:
             # All tasks completed successfully
