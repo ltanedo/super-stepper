@@ -13,7 +13,7 @@ setup(
     license="MIT",
     long_description_content_type="text/markdown",
     python_requires=">=3.6",
-    py_modules="["super_stepper"]  # For single-file packages",
+    py_modules=["super_stepper"],
     install_requires=["rich>=10.0.0"],
     keywords=["python", "workflow", "decorator", "progress", "phases", "tasks", "automation", "devops", "rich", "console"],
     classifiers=["Development Status :: 4 - Beta", "Intended Audience :: Developers", "Intended Audience :: System Administrators", "License :: OSI Approved :: MIT License", "Operating System :: OS Independent", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: System :: Systems Administration", "Topic :: Utilities", "Topic :: Software Development :: User Interfaces", "Topic :: Terminals"],
