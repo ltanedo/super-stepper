@@ -11,36 +11,13 @@ setup(
     description="A Python decorator module for creating beautiful, organized workflow displays with phases, tasks, and comprehensive error handling",
     url="https://github.com/ltanedo/super-stepper",
     license="MIT",
-    long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.6",
-    py_modules=["super_stepper"],  # For single-file packages
-    install_requires=["rich>=10.0.0"],  # Add your package dependencies here
+    py_modules="["super_stepper"]  # For single-file packages",
+    install_requires=["rich>=10.0.0"],
     keywords=["python", "workflow", "decorator", "progress", "phases", "tasks", "automation", "devops", "rich", "console"],
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Intended Audience :: System Administrators",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: System :: Systems Administration",
-        "Topic :: Utilities",
-        "Topic :: Software Development :: User Interfaces",
-        "Topic :: Terminals"
-    ],
-    project_urls={
-        "Bug Reports": "https://github.com/ltanedo/super-stepper/issues",
-        "Source": "https://github.com/ltanedo/super-stepper",
-        "Documentation": "https://github.com/ltanedo/super-stepper#readme"
-    },
+    classifiers=["Development Status :: 4 - Beta", "Intended Audience :: Developers", "Intended Audience :: System Administrators", "License :: OSI Approved :: MIT License", "Operating System :: OS Independent", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: System :: Systems Administration", "Topic :: Utilities", "Topic :: Software Development :: User Interfaces", "Topic :: Terminals"],
+    project_urls={"Bug Reports": "https://github.com/yourusername/super-stepper/issues","Source": "https://github.com/yourusername/super-stepper","Documentation": "https://github.com/yourusername/super-stepper#readme"},
+    long_description=long_description,
     packages=find_packages(),
 )
