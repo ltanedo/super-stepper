@@ -58,7 +58,7 @@ project_urls: {
 
 # Release-specific settings (not part of setup() function)
 tag_prefix: "v"
-target_branch: "main"
+target_branch: "master"
 release_notes_file: "README.md"
 draft: false
 prerelease: false
