@@ -2,12 +2,12 @@
 # This file is used to automatically generate setup.py and manage releases
 
 # Required setup() arguments
-name: "your-package-name"
-version: "1.0.0"
-author: "Your Name"
-author_email: "your.email@example.com"
-description: "A short description of your Python package"
-url: "https://github.com/yourusername/your-repo-name"
+name: "super-stepper"
+version: "0.1.0"
+author: "Developer"
+author_email: "lloydtan@buffalo.com"
+description: "A Python decorator module for creating beautiful, organized workflow displays with phases, tasks, and comprehensive error handling"
+url: "https://github.com/ltanedo/super-stepper"
 
 # Optional setup() arguments
 license: "MIT"
@@ -15,39 +15,45 @@ long_description_content_type: "text/markdown"
 python_requires: ">=3.6"
 
 # Package discovery (uncomment and modify as needed)
-# py_modules: ["single_module"]  # For single-file packages
+py_modules: ["super_stepper"]  # For single-file packages
 # packages will be auto-discovered with find_packages()
 
 # Dependencies (use YAML list format)
 # Examples:
 #   install_requires: ["requests>=2.25.0", "pyyaml>=5.4.0"]
 #   install_requires: []  # for no dependencies
-install_requires: []  # Add your package dependencies here
+install_requires: ["rich>=10.0.0"]  # Add your package dependencies here
 
 # Keywords for PyPI (comma-separated string or YAML list)
-keywords: "python, package, automation, tools"
+keywords: "python, workflow, decorator, progress, phases, tasks, automation, devops, rich, console"
 
 # Classifiers for PyPI (modify as appropriate for your package)
 classifiers: [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Utilities"
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+    "Topic :: Software Development :: User Interfaces",
+    "Topic :: Terminals"
 ]
 
 # Project URLs (update with your repository URLs)
 project_urls: {
-    "Bug Reports": "https://github.com/yourusername/your-repo-name/issues",
-    "Source": "https://github.com/yourusername/your-repo-name",
-    "Documentation": "https://github.com/yourusername/your-repo-name#readme"
+    "Bug Reports": "https://github.com/yourusername/super-stepper/issues",
+    "Source": "https://github.com/yourusername/super-stepper",
+    "Documentation": "https://github.com/yourusername/super-stepper#readme"
 }
 
 # Release-specific settings (not part of setup() function)
