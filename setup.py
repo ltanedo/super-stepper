@@ -3,9 +3,8 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-setup(    
-    name="super-stepper",
-    version="0.2.0",
+setup(    name="super-stepper",
+    version="0.3.0",
     author="Developer",
     author_email="lloydtan@buffalo.com",
     description="A Python decorator module for creating beautiful, organized workflow displays with phases, tasks, and comprehensive error handling",
