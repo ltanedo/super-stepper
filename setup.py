@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-setup(    name="super-stepper",
+setup(    
     name="super-stepper",
     version="0.2.0",
     author="Developer",

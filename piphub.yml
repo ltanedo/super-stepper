@@ -4,7 +4,6 @@
 # Required setup() arguments
 name: "super-stepper"
 # Required setup() arguments
-name: "super-stepper"
 version: "0.2.0"
 author: "Developer"
 author_email: "lloydtan@buffalo.com"
