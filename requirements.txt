@@ -1,3 +1,1 @@
-rich
-typer
-click
+git+https://github.com/ltanedo/ezenviron.git@v0.1.0#egg=ezenviron

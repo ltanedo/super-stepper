@@ -40,8 +40,9 @@ from rich.text import Text
 from rich.live import Live
 
 # Global storage for tasks and results
-_tasks: Dict[str, List[Tuple[float, str, Callable, bool, bool, str]]] = {}  # phase -> [(increment, task, func, completed, success, error_message)]
+_tasks: Dict[str, List[Tuple[float, str, Callable, bool, bool, str]]] = {}  # phase -> [(increment, task, func, completed, success, message)]
 _failed_tasks: List[Tuple[str, str, str]] = []  # [(phase, task, error_message)]
+_all_task_messages: List[Tuple[str, str, str, bool]] = []  # [(phase, task, message, success)]
 _phase_order: List[str] = []  # Track the order phases are encountered
 _console = Console()
 _live_display = None
@@ -49,6 +50,7 @@ _current_task = None
 _spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 _spinner_index = 0
 _display_started = False
+_workflow_started = False  # Track if workflow has been started
 
 
 def step(phase: str, task: str, increment: float):
@@ -83,7 +85,12 @@ def step(phase: str, task: str, increment: float):
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            global _current_task, _display_started
+            global _current_task, _display_started, _workflow_started
+
+            # Auto-reset and start workflow on first task execution
+            if not _workflow_started:
+                _auto_reset()
+                _workflow_started = True
 
             # Ensure phase exists
             if phase not in _tasks:
@@ -118,21 +125,25 @@ def step(phase: str, task: str, increment: float):
 
                 # Handle different return formats
                 if isinstance(result, tuple) and len(result) == 2:
-                    # Tuple return: (success, error_message)
-                    success, error_message = result
+                    # Tuple return: (success, message)
+                    success, message = result
                     success = bool(success)
-                    error_message = str(error_message) if error_message else ""
+                    message = str(message) if message else ""
                 else:
                     # Single return: just success boolean
                     success = bool(result)
-                    error_message = ""
+                    message = ""
 
                 # Update task status
-                _tasks[phase][task_entry] = (increment, task, func, True, success, error_message)
+                _tasks[phase][task_entry] = (increment, task, func, True, success, message)
 
-                # Track failed tasks
+                # Track all tasks with messages
+                if message:
+                    _all_task_messages.append((phase, task, message, success))
+
+                # Track failed tasks (for backward compatibility with existing summary)
                 if not success:
-                    _failed_tasks.append((phase, task, error_message))
+                    _failed_tasks.append((phase, task, message))
 
                 # Clear current task since it's completed
                 _current_task = None
@@ -148,6 +159,11 @@ def step(phase: str, task: str, increment: float):
 
                 # Update task status as failed
                 _tasks[phase][task_entry] = (increment, task, func, True, False, error_message)
+
+                # Track all tasks with messages
+                if error_message:
+                    _all_task_messages.append((phase, task, error_message, False))
+
                 _failed_tasks.append((phase, task, error_message))
 
                 # Clear current task since it's completed
@@ -208,6 +224,12 @@ def _generate_display():
                 else:
                     display.append("  ✗ ", style="red")
                 display.append(f"{task_name}", style="white")
+                # Add message if available (color based on success/failure)
+                if error_msg:
+                    if success:
+                        display.append(f" - {error_msg}", style="dim white")
+                    else:
+                        display.append(f" - {error_msg}", style="red")
             elif _current_task and _current_task[0] == phase and _current_task[1] == task_name:
                 # Show spinner for current task
                 spinner_char = _spinner_chars[_spinner_index]
@@ -232,8 +254,10 @@ def _stop_live_display():
         _live_display = None
 
 
-def print_summary():
+def summary():
     """Print a summary with completion statistics and failed tasks."""
+    global _workflow_started
+
     # Stop the live display first
     _stop_live_display()
 
@@ -260,32 +284,16 @@ def print_summary():
     # Print single status line with consistent indentation
     if total_tasks > 0:
         if failed_tasks > 0:
-            # Some tasks failed
+            # Simple error summary
             status_text = Text()
-            # status_text.append("", style="white")  # Match task indentation
-            status_text.append(f"{failed_tasks} of {total_tasks} tasks failed  ", style="white")
-            # status_text.append("✗", style="red")
+            status_text.append(f"⚠️  ", style="bold red")
+            status_text.append(f"{failed_tasks} of {total_tasks} tasks failed", style="bold red")
             _console.print(status_text)
-
-            # List failed tasks with consistent indentation
-            for i, (phase, task, error_msg) in enumerate(_failed_tasks, 1):
-                failed_text = Text()
-                failed_text.append(f"  {i}. ", style="white")
-                failed_text.append(f"{phase}: ", style="cyan")
-                failed_text.append(f"{task}", style="white")
-
-                # Add error message if available
-                if error_msg:
-                    failed_text.append(f" - {error_msg}", style="dim white")
-
-                failed_text.append("  ✗", style="red")
-                _console.print(failed_text)
         else:
             # All tasks completed successfully
             status_text = Text()
-            # status_text.append("  ", style="white")  # Match task indentation
-            status_text.append(f"{total_tasks} of {total_tasks} tasks completed  ", style="white")
-            status_text.append("✓", style="green")
+            status_text.append(f"✅ ", style="bold green")
+            status_text.append(f"{total_tasks} of {total_tasks} tasks completed successfully", style="bold green")
             _console.print(status_text)
     else:
         status_text = Text()
@@ -294,19 +302,41 @@ def print_summary():
 
     _console.print()
 
+    # Mark workflow as completed so next task execution will auto-reset
+    _workflow_started = False
+
 def start_workflow():
-    """Start the workflow by displaying all registered tasks."""
-    global _display_started
+    """Start the workflow by displaying all registered tasks. This is now called automatically."""
+    global _display_started, _workflow_started
+
+    # Mark workflow as started (prevents auto-reset)
+    _workflow_started = True
+
     if not _display_started and _tasks:
         _start_live_display()
         _display_started = True
 
 
-def reset():
-    """Reset all tasks and failed task tracking."""
-    global _tasks, _failed_tasks, _phase_order
+def _auto_reset():
+    """Internal function to automatically reset state when workflow starts."""
+    global _tasks, _failed_tasks, _phase_order, _all_task_messages, _display_started, _live_display
+
+    # Stop any existing live display
+    if _live_display:
+        _live_display.stop()
+        _live_display = None
 
     # Clear all data
     _tasks.clear()
     _failed_tasks.clear()
     _phase_order.clear()
+    _all_task_messages.clear()
+    _display_started = False
+
+
+def reset():
+    """Reset all tasks and failed task tracking. Call this to manually reset between workflows."""
+    global _workflow_started
+
+    _auto_reset()
+    _workflow_started = False

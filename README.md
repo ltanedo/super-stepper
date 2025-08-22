@@ -8,9 +8,10 @@ A Python decorator module for creating beautiful, organized workflow displays wi
 - **Task Sorting**: Tasks within phases are automatically sorted by increment values
 - **Live Display**: Real-time progress with animated spinners and status indicators
 - **Enhanced Error Handling**: Support for custom error messages and automatic exception capture
-- **Flexible Returns**: Functions can return simple booleans or (success, error_message) tuples
+- **Flexible Returns**: Functions can return simple booleans or (success, message) tuples
 - **Beautiful Output**: Rich console formatting with colors and symbols
 - **Out-of-Order Execution**: Tasks can be executed in any order but display logically organized
+- **State Management**: Tasks can modify shared variables to pass data between phases (see `example.py` and `state.py`)
 
 ## 🛠️ Installation
 
@@ -21,7 +22,7 @@ pip install rich
 ## 📖 Quick Start
 
 ```python
-from super_stepper import step, print_summary, reset, start_workflow
+from super_stepper import step, print_summary
 import time
 
 @step(phase="initialization", task="Setup logging", increment=1.0)
@@ -39,15 +40,12 @@ def process_data():
     time.sleep(0.8)
     raise ValueError("Invalid data format")  # Exception handling
 
-# Run workflow
-reset()
-start_workflow()
-
+# Run workflow - reset() and start_workflow() are now automatic!
 setup_logging()
 connect_db()
 process_data()
 
-print_summary()
+summary()
 ```
 
 ## 📋 Output Example
@@ -94,17 +92,17 @@ Decorator that wraps your function to provide progress tracking and error handli
 
 **Function Return Options:**
 - `return True/False` - Simple boolean success/failure
-- `return (True/False, "error message")` - Tuple with custom error message
+- `return (True/False, "message")` - Tuple with custom message (displayed for both success and failure)
 - Exceptions are automatically caught and used as error messages
 
 ### `start_workflow()`
-Initializes and starts the live display showing all registered tasks.
+Initializes and starts the live display showing all registered tasks. **Now called automatically** when the first task runs.
 
-### `print_summary()`
-Prints a comprehensive summary with task counts and detailed error messages.
+### `summary()`
+Prints a comprehensive summary with task counts and detailed error messages. Features colorful error highlighting with warning icons and bold styling for maximum visibility. Automatically marks the workflow as complete.
 
 ### `reset()`
-Clears all task history and failure tracking. Call before starting a new workflow.
+Clears all task history and failure tracking. **Now called automatically** when a new workflow starts. Only call manually if you need to reset mid-workflow.
 
 ## Advanced Usage
 
@@ -143,13 +141,17 @@ def simple_task():
     return True  # or False
 ```
 
-#### 2. Tuple Returns with Custom Error Messages
+#### 2. Tuple Returns with Custom Messages
 ```python
 @step(phase="advanced", task="Validation task", increment=1.0)
 def validation_task():
     if not validate_data():
         return False, "Data validation failed: missing required fields"
-    return True, ""  # Success with empty error message
+    return True, "Validation completed successfully"  # Success with message
+
+@step(phase="processing", task="Process data", increment=1.0)
+def process_data():
+    return True, "Processed 1,247 records"  # Success message displayed
 ```
 
 #### 3. Automatic Exception Handling
@@ -169,12 +171,12 @@ All error messages are displayed in the final summary with detailed information.
 
 ## Notes
 
-- **Return Formats**: Functions can return `True/False` or `(success, error_message)` tuples
+- **Return Formats**: Functions can return `True/False` or `(success, message)` tuples - messages are displayed for both success and failure
 - **Phase Organization**: Tasks are grouped by phase in the order phases are first encountered
 - **Task Sorting**: Within each phase, tasks are sorted by increment value
 - **Exception Safety**: All exceptions are caught and converted to error messages
 - **Live Display**: Spinner animations run in separate threads for real-time feedback
-- **Workflow Management**: Use `reset()` between different workflows to clear history
+- **Workflow Management**: Automatic reset and initialization - no manual setup required
 - **Out-of-Order Execution**: Tasks can be called in any order but display logically organized
 
 ## Best Practices
